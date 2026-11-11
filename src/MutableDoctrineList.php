@@ -44,7 +44,7 @@ class MutableDoctrineList implements MutableList, DelegateCollection
     public function __construct(iterable $elements = [])
     {
         $this->collection = new ArrayCollection();
-        $this->store = new DoctrineElementStore(fn (): Collection => $this->collection);
+        $this->bindStore();
         $this->store->addAll($elements);
     }
 
@@ -54,6 +54,30 @@ class MutableDoctrineList implements MutableList, DelegateCollection
     public function __clone()
     {
         $this->collection = clone $this->collection;
+        $this->bindStore();
+    }
+
+    /**
+     * Only the collection is serialized: the store reads it through a closure.
+     *
+     * @return array{collection: Collection<array-key,E>}
+     */
+    public function __serialize(): array
+    {
+        return ['collection' => $this->collection];
+    }
+
+    /**
+     * @param array{collection: Collection<array-key,E>} $data
+     */
+    public function __unserialize(array $data): void
+    {
+        $this->collection = $data['collection'];
+        $this->bindStore();
+    }
+
+    private function bindStore(): void
+    {
         $this->store = new DoctrineElementStore(fn (): Collection => $this->collection);
     }
 }

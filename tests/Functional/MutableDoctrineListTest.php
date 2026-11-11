@@ -14,6 +14,8 @@ use Noctud\Collection\Doctrine\Tests\Fixtures\Library;
 use Noctud\Collection\Doctrine\Tests\Fixtures\Tag;
 use Noctud\Collection\Exception\IndexOutOfBoundsException;
 use PHPUnit\Framework\Attributes\Test;
+use function serialize;
+use function unserialize;
 
 final class MutableDoctrineListTest extends OrmTestCase
 {
@@ -145,6 +147,18 @@ final class MutableDoctrineListTest extends OrmTestCase
 
         $this->assertCount(2, $copy);
         $this->assertCount(1, $library->tags);
+    }
+
+    #[Test]
+    public function a_loaded_entity_is_serialized_with_its_list(): void
+    {
+        $library = $this->reload($this->libraryWithTags('doctrine', 'php'));
+        $this->managedCollection($library, 'tags')->initialize();
+
+        $restored = unserialize(serialize($library));
+
+        $this->assertInstanceOf(Library::class, $restored);
+        $this->assertSame(['doctrine', 'php'], $this->tagNames($restored));
     }
 
     private function libraryWithTags(string ...$names): Library

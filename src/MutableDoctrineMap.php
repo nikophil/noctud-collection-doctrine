@@ -51,7 +51,7 @@ class MutableDoctrineMap implements MutableMap, DelegateCollection
     public function __construct(iterable $entries = [])
     {
         $this->collection = new ArrayCollection();
-        $this->store = new DoctrineKeyValueStore(fn (): Collection => $this->collection);
+        $this->bindStore();
         $this->store->putAllFromAssoc($entries);
     }
 
@@ -61,9 +61,33 @@ class MutableDoctrineMap implements MutableMap, DelegateCollection
     public function __clone()
     {
         $this->collection = clone $this->collection;
-        $this->store = new DoctrineKeyValueStore(fn (): Collection => $this->collection);
+        $this->bindStore();
         $this->keys = new MapKeySet($this->store);
         $this->values = new MapValueCollection($this->store);
         $this->entries = new MapEntrySet($this->store); // @phpstan-ignore assign.propertyType (MapEntry<K,V> is invariant, as in MapLogic)
+    }
+
+    /**
+     * Only the collection is serialized: the store reads it through a closure.
+     *
+     * @return array{collection: Collection<K,V>}
+     */
+    public function __serialize(): array
+    {
+        return ['collection' => $this->collection];
+    }
+
+    /**
+     * @param array{collection: Collection<K,V>} $data
+     */
+    public function __unserialize(array $data): void
+    {
+        $this->collection = $data['collection'];
+        $this->bindStore();
+    }
+
+    private function bindStore(): void
+    {
+        $this->store = new DoctrineKeyValueStore(fn (): Collection => $this->collection);
     }
 }
