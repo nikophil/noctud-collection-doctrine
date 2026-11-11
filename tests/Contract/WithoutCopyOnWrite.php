@@ -36,4 +36,9 @@ trait WithoutCopyOnWrite
     {
         // not a test anymore
     }
+
+    public function constructing_from_pairs_uses_copy_on_write(): void
+    {
+        // not a test anymore
+    }
 }

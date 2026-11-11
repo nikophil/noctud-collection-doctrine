@@ -47,9 +47,12 @@ final class DoctrineElementStore implements ReadWriteIndexedStore
      * the one a custom collection holds on the first flush and on refresh.
      *
      * @param Closure():Collection<array-key,E> $collection
+     * @param bool $unique Whether adding an element the collection already holds is a no-op, as a set requires
      */
-    public function __construct(private Closure $collection)
-    {
+    public function __construct(
+        private Closure $collection,
+        private readonly bool $unique = false,
+    ) {
     }
 
     /**
@@ -143,18 +146,24 @@ final class DoctrineElementStore implements ReadWriteIndexedStore
 
     public function add(mixed $element): void
     {
-        $this->collection()->add($element);
+        $collection = $this->collection();
+
+        if (!$this->unique || !$collection->contains($element)) {
+            $collection->add($element);
+        }
     }
 
     public function addFirst(mixed $element): void
     {
         $collection = $this->collection();
-        $collection->add($element);
+        $key = $this->unique ? $collection->indexOf($element) : false;
 
-        $elements = $collection->toArray();
-        $key = array_key_last($elements);
+        if ($key === false) {
+            $collection->add($element);
+            $key = array_key_last($collection->toArray());
+        }
 
-        $this->rewrite([$key => $elements[$key]] + $elements);
+        $this->rewrite([$key => $element] + $collection->toArray());
     }
 
     public function addAll(iterable $source): void

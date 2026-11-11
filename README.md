@@ -63,6 +63,7 @@ The property holds the same object for the whole life of the entity. The ORM put
 | Class                 | Noctud type                                         |
 | --------------------- | --------------------------------------------------- |
 | `MutableDoctrineList` | [`MutableList`](https://noctud.dev/collection/list) |
+| `MutableDoctrineSet`  | [`MutableSet`](https://noctud.dev/collection/set)   |
 
 To type the property with the Noctud interface, name the class in the mapping:
 
@@ -91,4 +92,5 @@ final class TagList extends MutableDoctrineList
 
 - **The order is not persisted.** `sort()`, `sortBy()`, `reverse()`, `shuffle()` and `addFirst()` reorder the elements in memory, without any query. When the entity is loaded again, the order comes from the database, or from `#[ORM\OrderBy]`.
 - **Transformations return detached collections.** As in Noctud Collection, `filter()`, `map()`, `sorted()` and the like return a new immutable collection: the ORM does not track it.
+- **A set compares by identity**, as Doctrine collections do: `Hashable` is not used. To keep its elements unique, `add()` first asks the collection whether it holds the element, which loads a `LAZY` association.
 - **Reading one element does not load an `EXTRA_LAZY` association.** `count()`, `contains()`, `first()` and `get()` each run their own query.

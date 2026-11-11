@@ -30,8 +30,16 @@ class Library
     #[ORM\OrderBy(['name' => 'ASC'])]
     public MutableList $tags;
 
+    /**
+     * Typed with a domain collection: the ORM infers the class from the property type.
+     */
+    #[ORM\OneToMany(targetEntity: Book::class, mappedBy: 'library', cascade: ['persist'], orphanRemoval: true)]
+    #[ORM\OrderBy(['title' => 'ASC'])]
+    public BookSet $books;
+
     public function __construct()
     {
         $this->tags = new MutableDoctrineList();
+        $this->books = new BookSet();
     }
 }
