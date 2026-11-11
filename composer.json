@@ -1,0 +1,52 @@
+{
+    "name": "noctud/collection-doctrine",
+    "description": "Doctrine ORM bridge for Noctud Collection: List, Set and Map for to-many associations",
+    "type": "library",
+    "license": "MIT",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/nikophil/orm"
+        }
+    ],
+    "require": {
+        "php": ">=8.4",
+        "doctrine/collections": "^2.2 || ^3.1",
+        "doctrine/orm": "dev-feature/custom-collections-delegation as 3.8.x-dev",
+        "noctud/collection": "^0.2"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "2.3.5",
+        "phpunit/phpunit": "^13.0",
+        "squizlabs/php_codesniffer": "^4.0",
+        "slevomat/coding-standard": "^8.16"
+    },
+    "autoload": {
+        "psr-4": {
+            "Noctud\\Collection\\Doctrine\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Noctud\\Collection\\Doctrine\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "scripts": {
+        "qa": [
+            "@phpstan",
+            "@phpcs",
+            "@phpunit"
+        ],
+        "phpstan": "phpstan analyse",
+        "phpcs": "phpcs",
+        "csf": "phpcbf",
+        "phpunit": "phpunit"
+    }
+}

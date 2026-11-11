@@ -1,0 +1,7 @@
+parameters:
+    level: 9
+    phpVersion: 80400
+    tmpDir: %currentWorkingDirectory%/var/cache/phpstan
+    paths:
+        - src
+        - tests
