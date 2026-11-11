@@ -11,6 +11,7 @@ namespace Noctud\Collection\Doctrine\Tests\Fixtures;
 
 use Doctrine\ORM\Mapping as ORM;
 use Noctud\Collection\Doctrine\MutableDoctrineList;
+use Noctud\Collection\Doctrine\MutableDoctrineMap;
 use Noctud\Collection\List\MutableList;
 
 #[ORM\Entity]
@@ -37,9 +38,19 @@ class Library
     #[ORM\OrderBy(['title' => 'ASC'])]
     public BookSet $books;
 
+    /**
+     * Indexed by a field of the target entity.
+     *
+     * @var MutableDoctrineMap<string,Shelf>
+     */
+    #[ORM\OneToMany(targetEntity: Shelf::class, mappedBy: 'library', cascade: ['persist'], fetch: 'EXTRA_LAZY', orphanRemoval: true, indexBy: 'code')]
+    #[ORM\OrderBy(['code' => 'ASC'])]
+    public MutableDoctrineMap $shelves;
+
     public function __construct()
     {
         $this->tags = new MutableDoctrineList();
         $this->books = new BookSet();
+        $this->shelves = new MutableDoctrineMap();
     }
 }

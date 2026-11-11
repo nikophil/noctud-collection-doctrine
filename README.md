@@ -64,6 +64,7 @@ The property holds the same object for the whole life of the entity. The ORM put
 | --------------------- | --------------------------------------------------- |
 | `MutableDoctrineList` | [`MutableList`](https://noctud.dev/collection/list) |
 | `MutableDoctrineSet`  | [`MutableSet`](https://noctud.dev/collection/set)   |
+| `MutableDoctrineMap`  | [`MutableMap`](https://noctud.dev/collection/map)   |
 
 To type the property with the Noctud interface, name the class in the mapping:
 
@@ -71,6 +72,23 @@ To type the property with the Noctud interface, name the class in the mapping:
 /** @var MutableList<Tag> */
 #[ORM\ManyToMany(targetEntity: Tag::class, collectionClass: MutableDoctrineList::class)]
 private MutableList $tags;
+```
+
+### Indexed associations
+
+An association indexed by a field of its target entity is a map, keyed by the values of that field:
+
+```php
+/** @var MutableDoctrineMap<string, Shelf> */
+#[ORM\OneToMany(targetEntity: Shelf::class, mappedBy: 'library', indexBy: 'code')]
+private MutableDoctrineMap $shelves;
+```
+
+```php
+$this->shelves['A1']; // the shelf whose code is A1, throws if there is none
+$this->shelves->getOrNull('A1');
+$this->shelves->put($shelf->code, $shelf);
+$this->shelves->keys; // the codes, as a Set
 ```
 
 ### Domain collections
@@ -90,7 +108,8 @@ final class TagList extends MutableDoctrineList
 
 ## Good to know
 
-- **The order is not persisted.** `sort()`, `sortBy()`, `reverse()`, `shuffle()` and `addFirst()` reorder the elements in memory, without any query. When the entity is loaded again, the order comes from the database, or from `#[ORM\OrderBy]`.
+- **The order is not persisted.** `sort()`, `sortBy()`, `reverse()`, `shuffle()`, `addFirst()` and `putFirst()` reorder the elements in memory, without any query. When the entity is loaded again, the order comes from the database, or from `#[ORM\OrderBy]`.
 - **Transformations return detached collections.** As in Noctud Collection, `filter()`, `map()`, `sorted()` and the like return a new immutable collection: the ORM does not track it.
 - **A set compares by identity**, as Doctrine collections do: `Hashable` is not used. To keep its elements unique, `add()` first asks the collection whether it holds the element, which loads a `LAZY` association.
-- **Reading one element does not load an `EXTRA_LAZY` association.** `count()`, `contains()`, `first()` and `get()` each run their own query.
+- **The keys of a map are those of a PHP array**, as in a Doctrine collection: `'1'` is the integer `1`, and a key of another type cannot be written. When the entity is loaded again, the keys come from the `indexBy` field, so put an element under the value of that field.
+- **Reading one element does not load an `EXTRA_LAZY` association.** `count()`, `contains()`, `first()` and `get()` each run their own query, as do `get()` and `containsKey()` on a map.

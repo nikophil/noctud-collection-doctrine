@@ -26,6 +26,7 @@ final readonly class NoctudDelegateCollectionFactory implements DelegateCollecti
     private const array ConstructedClasses = [
         MutableDoctrineList::class,
         MutableDoctrineSet::class,
+        MutableDoctrineMap::class,
     ];
 
     public function __construct(
