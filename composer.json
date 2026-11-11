@@ -30,7 +30,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Noctud\\Collection\\Doctrine\\Tests\\": "tests/"
+            "Noctud\\Collection\\Doctrine\\Tests\\": "tests/",
+            "Noctud\\Collection\\Tests\\": "vendor/noctud/collection/tests/"
         }
     },
     "config": {
