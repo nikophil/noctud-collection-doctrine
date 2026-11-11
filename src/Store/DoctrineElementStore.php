@@ -10,9 +10,7 @@ declare(strict_types=1);
 namespace Noctud\Collection\Doctrine\Store;
 
 use Closure;
-use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\ORM\PersistentCollection;
 use Noctud\Collection\Exception\IndexOutOfBoundsException;
 use Noctud\Collection\Exception\NoSuchElementException;
 use Noctud\Collection\Store\AbstractElementStore;
@@ -22,11 +20,9 @@ use function array_key_first;
 use function array_key_last;
 use function array_keys;
 use function array_rand;
-use function array_reverse;
 use function array_search;
 use function array_values;
 use function end;
-use function shuffle;
 use function sort;
 use function usort;
 
@@ -38,30 +34,20 @@ use function usort;
  *
  * @internal
  * @template E
+ * @extends AbstractDoctrineStore<array-key,E>
  * @implements ReadWriteIndexedStore<E>
  */
-final class DoctrineElementStore implements ReadWriteIndexedStore
+final class DoctrineElementStore extends AbstractDoctrineStore implements ReadWriteIndexedStore
 {
     /**
-     * The closure returns the current collection on each call: the ORM replaces
-     * the one a custom collection holds on the first flush and on refresh.
-     *
      * @param Closure():Collection<array-key,E> $collection
      * @param bool $unique Whether adding an element the collection already holds is a no-op, as a set requires
      */
     public function __construct(
-        private Closure $collection,
+        Closure $collection,
         private readonly bool $unique = false,
     ) {
-    }
-
-    /**
-     * The logic traits clone the store, then sort or slice the copy.
-     */
-    public function __clone()
-    {
-        $detached = new ArrayCollection($this->collection()->toArray());
-        $this->collection = static fn (): Collection => $detached;
+        parent::__construct($collection);
     }
 
     // --- Element Access ---
@@ -125,23 +111,6 @@ final class DoctrineElementStore implements ReadWriteIndexedStore
         return $indexes === [] ? -1 : end($indexes);
     }
 
-    // --- Querying ---
-
-    public function contains(mixed $element): bool
-    {
-        return $this->collection()->contains($element);
-    }
-
-    public function isEmpty(): bool
-    {
-        return $this->collection()->isEmpty();
-    }
-
-    public function count(): int
-    {
-        return $this->collection()->count();
-    }
-
     // --- Mutation ---
 
     public function add(mixed $element): void
@@ -197,31 +166,6 @@ final class DoctrineElementStore implements ReadWriteIndexedStore
         }
     }
 
-    public function removeFirst(): void
-    {
-        $collection = $this->collection();
-        $key = array_key_first($collection->toArray());
-
-        if ($key !== null) {
-            $collection->remove($key);
-        }
-    }
-
-    public function removeLast(): void
-    {
-        $collection = $this->collection();
-        $key = array_key_last($collection->toArray());
-
-        if ($key !== null) {
-            $collection->remove($key);
-        }
-    }
-
-    public function clear(): void
-    {
-        $this->collection()->clear();
-    }
-
     public function removeIf(callable $predicate): void
     {
         $collection = $this->collection();
@@ -253,19 +197,6 @@ final class DoctrineElementStore implements ReadWriteIndexedStore
         $this->rewrite(array_values(AbstractElementStore::orderedBy($this->toArray(), $selector, $descending)));
     }
 
-    public function reverse(): void
-    {
-        $this->rewrite(array_reverse($this->toArray()));
-    }
-
-    public function shuffle(): void
-    {
-        $elements = $this->toArray();
-        shuffle($elements);
-
-        $this->rewrite($elements);
-    }
-
     // --- Conversion ---
 
     public function toArray(): array
@@ -280,40 +211,8 @@ final class DoctrineElementStore implements ReadWriteIndexedStore
 
     // --- Internal ---
 
-    /**
-     * @return Collection<array-key,E>
-     */
-    private function collection(): Collection
-    {
-        return ($this->collection)();
-    }
-
     private function keyAt(int $index): int|string
     {
         return $this->collection()->getKeys()[$index] ?? throw new IndexOutOfBoundsException('Index out of bounds: ' . $index);
-    }
-
-    /**
-     * Replaces the elements with the same ones in another order.
-     *
-     * An association has no persisted order, so a managed collection is reordered
-     * behind its change tracking: it must not become dirty.
-     *
-     * @param array<array-key,E> $elements
-     */
-    private function rewrite(array $elements): void
-    {
-        $collection = $this->collection();
-
-        if ($collection instanceof PersistentCollection) {
-            $collection->initialize();
-            $collection = $collection->unwrap();
-        }
-
-        $collection->clear();
-
-        foreach ($elements as $key => $element) {
-            $collection->set($key, $element);
-        }
     }
 }
