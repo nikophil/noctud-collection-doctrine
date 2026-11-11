@@ -10,3 +10,85 @@ composer require noctud/collection-doctrine
 ```
 
 Requires **PHP 8.4+**, `noctud/collection` 0.2 and Doctrine ORM 3.8.
+
+## Setup
+
+Doctrine creates the collections of loaded entities without calling their constructor, and a Noctud collection needs its own. Register the factory of this package on the ORM configuration:
+
+```php
+use Noctud\Collection\Doctrine\NoctudDelegateCollectionFactory;
+
+$config->setDelegateCollectionFactory(new NoctudDelegateCollectionFactory());
+```
+
+Without it, the first access to the collection of a loaded entity fails with `Typed property ...::$store must not be accessed before initialization`.
+
+The factory only creates the collections of this package and their subclasses. It hands any other class over to the default factory of the ORM, or to the one you pass to its constructor.
+
+## Usage
+
+Type the property of a to-many association with a collection of this package, and create it in the constructor of the entity:
+
+```php
+use Doctrine\ORM\Mapping as ORM;
+use Noctud\Collection\Doctrine\MutableDoctrineList;
+
+#[ORM\Entity]
+class Library
+{
+    /** @var MutableDoctrineList<Tag> */
+    #[ORM\ManyToMany(targetEntity: Tag::class)]
+    private MutableDoctrineList $tags;
+
+    public function __construct()
+    {
+        $this->tags = new MutableDoctrineList();
+    }
+
+    public function tag(Tag $tag): void
+    {
+        $this->tags->add($tag);
+    }
+
+    /** @return list<string> */
+    public function tagNames(): array
+    {
+        return $this->tags->sortedBy(fn (Tag $tag) => $tag->name)->map(fn (Tag $tag) => $tag->name)->toArray();
+    }
+}
+```
+
+The property holds the same object for the whole life of the entity. The ORM puts the collection it manages inside it, and every write goes to that collection: lazy loading, `EXTRA_LAZY`, change tracking, cascades and orphan removal work as with a plain Doctrine collection.
+
+| Class                 | Noctud type                                         |
+| --------------------- | --------------------------------------------------- |
+| `MutableDoctrineList` | [`MutableList`](https://noctud.dev/collection/list) |
+
+To type the property with the Noctud interface, name the class in the mapping:
+
+```php
+/** @var MutableList<Tag> */
+#[ORM\ManyToMany(targetEntity: Tag::class, collectionClass: MutableDoctrineList::class)]
+private MutableList $tags;
+```
+
+### Domain collections
+
+The classes are open to extension, so a collection can carry the methods of your domain. Its constructor must be callable without argument:
+
+```php
+/** @extends MutableDoctrineList<Tag> */
+final class TagList extends MutableDoctrineList
+{
+    public function names(): ImmutableList
+    {
+        return $this->map(fn (Tag $tag) => $tag->name);
+    }
+}
+```
+
+## Good to know
+
+- **The order is not persisted.** `sort()`, `sortBy()`, `reverse()`, `shuffle()` and `addFirst()` reorder the elements in memory, without any query. When the entity is loaded again, the order comes from the database, or from `#[ORM\OrderBy]`.
+- **Transformations return detached collections.** As in Noctud Collection, `filter()`, `map()`, `sorted()` and the like return a new immutable collection: the ORM does not track it.
+- **Reading one element does not load an `EXTRA_LAZY` association.** `count()`, `contains()`, `first()` and `get()` each run their own query.
